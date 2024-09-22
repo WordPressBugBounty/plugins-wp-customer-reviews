@@ -1,0 +1,17 @@
+%---
+NOTICE: Changes made to this file do nothing.
+Additionally, this file will be overwritten with each plugin update and/or activation.
+---%
+{{#aggregate}}
+<div class="wpcr3_aggregateRating"{{:aggregate_count_valid}} itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating"{{/aggregate_count_valid}}>
+	{{:aggregate_count_valid}}
+	<meta itemprop="bestRating" content="5" />
+	<meta itemprop="worstRating" content="1" />
+	<meta itemprop="ratingValue" content="{{aggregate_rating}}" />
+	<meta itemprop="reviewCount" content="{{aggregate_count}}" />
+	{{/aggregate_count_valid}}
+	<span class="wpcr3_aggregateRating_overallText">Average rating: </span>&nbsp;
+	<div class="wpcr3_aggregateRating_ratingValue">{{stars}}</div>&nbsp;
+	<span class="wpcr3_aggregateRating_reviewCount">{{aggregate_count}} reviews</span>
+</div>
+{{/aggregate}}
