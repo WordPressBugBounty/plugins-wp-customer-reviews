@@ -3,7 +3,7 @@
  * Plugin Name: WP Customer Reviews
  * Plugin URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Description: Allows your visitors to leave business / product reviews. Testimonials are in Microdata / Microformat and may display star ratings in search results.
- * Version: 3.7.3
+ * Version: 3.7.4
  * Author: Aaron Queen
  * Author URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Text Domain: wp-customer-reviews
