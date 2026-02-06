@@ -1,3 +1,16 @@
+= 3.7.7 =
+* 12/12/2025
+* [Update] Security / hardening updates
+
+= 3.7.6 =
+* 12/11/2025
+* [Update] Bug fix with hardening updates
+
+= 3.7.5 =
+* 12/11/2025
+* [Update] Tested with WP 6.9
+* [Security] Security / hardening updates
+
 = 3.7.4 =
 * 08/18/2025
 * [Update] Tested with WP 6.8

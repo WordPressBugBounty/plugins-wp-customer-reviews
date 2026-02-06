@@ -3,7 +3,7 @@
  * Plugin Name: WP Customer Reviews
  * Plugin URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Description: Allows your visitors to leave business / product reviews. Testimonials are in Microdata / Microformat and may display star ratings in search results.
- * Version: 3.7.4
+ * Version: 3.7.7
  * Author: Aaron Queen
  * Author URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Text Domain: wp-customer-reviews
@@ -199,25 +199,47 @@ class WPCustomerReviews3 {
         $this->options = get_option($this->options_name);
     }
 
-    function make_p_obj() {
-        $this->p = new stdClass();
+		function sanitize_p_obj_array($valArr) {
+			foreach ($valArr as $k => $v) {
+				if (is_array($v)) {
+					$valArr[$k] = $this->sanitize_p_obj_array($v);
+					continue;
+				}
 
-        foreach ($_GET as $c => $val) {
-            if (is_array($val)) {
-                $this->p->$c = $val;
-            } else {
-                $this->p->$c = trim(stripslashes($val));
-            }
-        }
+				$valArr[$k] = trim(stripslashes($v));
+			}
 
-        foreach ($_POST as $c => $val) {
-            if (is_array($val)) {
-                $this->p->$c = $val;
-            } else {
-                $this->p->$c = trim(stripslashes($val));
-            }
-        }
-    }
+			return $valArr;
+		}
+
+		function sanitize_p_obj() {
+			foreach ($this->p as $c => $val) {
+				if (is_array($val)) {
+					$this->p->$c = $this->sanitize_p_obj_array($val);
+					continue;
+				}
+
+				// this is escaped on output by wp_kses() using allowedContentTags or allowedFieldTags, depending on the context
+				$this->p->$c = trim(stripslashes($val));
+			}
+		}
+
+		function make_p_obj() {
+			$this->p = new stdClass();
+
+			if (is_admin()) {
+				// $_GET is used mainly by filters for admin pages, but no intended use case for this in frontend
+				foreach ($_GET as $c => $val) {
+					$this->p->$c = $val;
+				}
+			}
+
+			foreach ($_POST as $c => $val) {
+				$this->p->$c = $val;
+			}
+
+			$this->sanitize_p_obj();
+		}
     
     function is_active_page() {
         global $post;
@@ -828,13 +850,13 @@ class WPCustomerReviews3 {
 		$required = ($fieldArr['require'] == 1);
 
 		$data = array(
-			'name' => $this->prefix.'_'.$name, 
+			'name' => $this->prefix.'_'.$name,
 			'label' => wp_kses($fieldArr['label'], $this->allowedFieldTags),
 			'required' => $required ? '*' : '',
 			'class' => $required ? $this->prefix.'_required' : '',
-			'value' => $this->p->$posted_name
+			'value' => wp_kses($this->p->$posted_name, $this->allowedFieldTags)
 		);
-		$field = wpcr_Goatee::fill($this->options['templates']['frontend_review_form_text_field'], $data);		
+		$field = wpcr_Goatee::fill($this->options['templates']['frontend_review_form_text_field'], $data);
 		return $field;
 	}
 	
@@ -853,9 +875,9 @@ class WPCustomerReviews3 {
 		$this->param($params);
 		
 		$data = array(
-			'value' => $this->p->$posted_name
+			'value' => wp_kses($this->p->$posted_name, $this->allowedContentTags)
 		);
-		$field = wpcr_Goatee::fill($this->options['templates']['frontend_review_form_review_field'], $data);		
+		$field = wpcr_Goatee::fill($this->options['templates']['frontend_review_form_review_field'], $data);
 		return $field;
 	}
 	

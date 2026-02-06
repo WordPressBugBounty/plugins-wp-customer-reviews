@@ -3,8 +3,8 @@ Contributors: bompus
 Donate link: https://www.paypal.com/donate/?hosted_button_id=WWRLGGP9CE4LE
 Tags: hcard, schema.org, hreview, reviews, testimonials
 Requires at least: 3.0.0
-Tested up to: 6.8
-Stable tag: 3.7.4
+Tested up to: 6.9
+Stable tag: 3.7.7
 License: MIT
 License URI: http://opensource.org/licenses/MIT
 
@@ -61,6 +61,19 @@ More information at: [**WP Customer Reviews**](https://wordpress.org/plugins/wp-
 * [**Community Support Forum**](https://wordpress.org/support/plugin/wp-customer-reviews/)
 
 == Changelog ==
+
+= 3.7.7 =
+* 12/12/2025
+* [Update] Security / hardening updates
+
+= 3.7.6 =
+* 12/11/2025
+* [Update] Bug fix for hardening updates
+
+= 3.7.5 =
+* 12/11/2025
+* [Update] Tested with WP 6.9
+* [Security] Security / hardening updates
 
 = 3.7.4 =
 * 08/18/2025
