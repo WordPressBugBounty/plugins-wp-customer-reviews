@@ -3,8 +3,8 @@ Contributors: bompus
 Donate link: https://www.paypal.com/donate/?hosted_button_id=WWRLGGP9CE4LE
 Tags: hcard, schema.org, hreview, reviews, testimonials
 Requires at least: 3.0.0
-Tested up to: 6.9
-Stable tag: 3.7.7
+Tested up to: 7.0
+Stable tag: 3.7.8
 License: MIT
 License URI: http://opensource.org/licenses/MIT
 
@@ -38,7 +38,7 @@ More information at: [**WP Customer Reviews**](https://wordpress.org/plugins/wp-
 
 == Installation ==
 
-1. Upload contents of compressed file (wp-customer-reviews) to the `/wp-content/plugins/` directory. 
+1. Upload contents of compressed file (wp-customer-reviews) to the `/wp-content/plugins/` directory.
 2. Activate the plugin through the `Plugins` menu in WordPress admin.
 3. Create a WordPress page to be used specifically for gathering reviews or testimonials.
 4. Go into settings for WP Customer Reviews and configure the plugin.
@@ -61,6 +61,10 @@ More information at: [**WP Customer Reviews**](https://wordpress.org/plugins/wp-
 * [**Community Support Forum**](https://wordpress.org/support/plugin/wp-customer-reviews/)
 
 == Changelog ==
+
+= 3.7.8 =
+* 05/31/2026
+* [Update] Tested with WP 7.0
 
 = 3.7.7 =
 * 12/12/2025

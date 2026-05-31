@@ -1,3 +1,7 @@
+= 3.7.8 =
+* 05/31/2026
+* [Update] Tested with WP 7.0
+
 = 3.7.7 =
 * 12/12/2025
 * [Update] Security / hardening updates
@@ -161,7 +165,7 @@
 * [Update] Backend checkboxes are now Yes/No select dropdowns. Developers everywhere rejoice with me eliminating non-form-submitting HTML checkboxes. Should eliminate reported issue with WPCR-enabled posts becoming non-enabled.
 * [Update] Simplified some logic in the admin JS file.
 * [Bugfix] The save_post hook will now only run our custom meta updating logic when saving a post via the standard WP post editing form. Should eliminate reported issue with WPCR-enabled posts becoming non-enabled.
-* [Bugfix] The save_post hook no longer deletes/ignores updates to our custom meta on all falsy values. Submitted value must be an empty string to trigger the delete. This allows for a value of '0' to actually save. 
+* [Bugfix] The save_post hook no longer deletes/ignores updates to our custom meta on all falsy values. Submitted value must be an empty string to trigger the delete. This allows for a value of '0' to actually save.
 * [Bugfix] Fixed race condition in displaying Business/Product fields based on Review Format dropdown when editing posts. Previously, both Business and Product fields could sometimes display, which was confusing.
 * [Bugfix] If a visitor submits a review with line breaks, they used to be stripped out during front-end display. These are now converted into HTML line breaks.
 
