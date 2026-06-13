@@ -2,9 +2,10 @@
 Contributors: bompus
 Donate link: https://www.paypal.com/donate/?hosted_button_id=WWRLGGP9CE4LE
 Tags: hcard, schema.org, hreview, reviews, testimonials
-Requires at least: 3.0.0
+Requires at least: 5.3
 Tested up to: 7.0
-Stable tag: 3.7.8
+Stable tag: 3.8.0
+Requires PHP: 7.4
 License: MIT
 License URI: http://opensource.org/licenses/MIT
 
@@ -61,6 +62,12 @@ More information at: [**WP Customer Reviews**](https://wordpress.org/plugins/wp-
 * [**Community Support Forum**](https://wordpress.org/support/plugin/wp-customer-reviews/)
 
 == Changelog ==
+
+= 3.8.0 =
+* 06/13/2026
+* [Security] Security / hardening updates
+* [Fix] Improve mobile layout for review form and review list (prevent horizontal overflow)
+* [Cleanup] Remove unused/legacy logic
 
 = 3.7.8 =
 * 05/31/2026

@@ -3,7 +3,8 @@
  * Plugin Name: WP Customer Reviews
  * Plugin URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Description: Allows your visitors to leave business / product reviews. Testimonials are in Microdata / Microformat and may display star ratings in search results.
- * Version: 3.7.8
+ * Version: 3.8.0
+ * Requires PHP: 7.4
  * Author: Aaron Queen
  * Author URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Text Domain: wp-customer-reviews
@@ -31,9 +32,13 @@
  *
  */
 
+
+if (!defined('ABSPATH')) {
+  exit;
+}
+
 class WPCustomerReviews3
 {
-  var $debug = false;
   var $prefix = "wpcr3";
   var $dashname = "wp-customer-reviews-3";
   var $url = "https://wordpress.org/plugins/wp-customer-reviews/";
@@ -97,29 +102,11 @@ class WPCustomerReviews3
 
   function start()
   {
-    $this->debug =
-      isset($_SERVER) &&
-      isset($_SERVER["SERVER_NAME"]) &&
-      stripos($_SERVER["SERVER_NAME"], "wptest.bomp") !== false;
-
-    if ($this->debug === true || $this->remote_debug()) {
-      restore_error_handler();
-      error_reporting(E_ALL);
-      ini_set("error_reporting", E_ALL);
-      ini_set("html_errors", true);
-      ini_set("display_errors", true);
-    }
-
     register_activation_hook(__FILE__, [&$this, "activate"]);
     register_deactivation_hook(__FILE__, [&$this, "deactivate"]);
 
     // we use priority 11 to allow v2 and v3 to coexist
     add_action("init", [&$this, "init"], 11);
-  }
-
-  function remote_debug()
-  {
-    return isset($_GET["wpcr3_debug"]);
   }
 
   function plugin_get_info()
@@ -130,15 +117,15 @@ class WPCustomerReviews3
 
   function include_goatee()
   {
-    if (!defined("HAS_" . $this->prefix . "_GOATEE")) {
-      define("HAS_" . $this->prefix . "_GOATEE", 1);
+    if (!defined("WPCR3_HAS_GOATEE")) {
+      define("WPCR3_HAS_GOATEE", 1);
       include_once $this->getplugindir() . "include/goatee-php/wpcr-goatee.php"; // include Goatee templating functions
     }
   }
 
   function include_pro()
   {
-    if (!defined("HAS_" . $this->prefix . "_PRO")) {
+    if (!defined("WPCR3_HAS_PRO")) {
       $pro_file =
         $this->getplugindir() .
         "../wp-customer-reviews-pro-activation/wp-customer-reviews-3-pro-inc.php";
@@ -156,7 +143,7 @@ class WPCustomerReviews3
         return;
       }
 
-      define("HAS_" . $this->prefix . "_PRO", 1);
+      define("WPCR3_HAS_PRO", 1);
       include_once $pro_file; // include pro functions
       $this->proClass = new WPCustomerReviews3Pro();
       $this->proClass->start_pro($this);
@@ -176,8 +163,8 @@ class WPCustomerReviews3
 
   function include_admin()
   {
-    if (!defined("HAS_" . $this->prefix . "_ADMIN")) {
-      define("HAS_" . $this->prefix . "_ADMIN", 1);
+    if (!defined("WPCR3_HAS_ADMIN")) {
+      define("WPCR3_HAS_ADMIN", 1);
       include_once $this->getplugindir() .
         "include/admin/wp-customer-reviews-3-admin.php"; // include admin functions
       $this->adminClass = new WPCustomerReviewsAdmin3();
@@ -239,7 +226,7 @@ class WPCustomerReviews3
         continue;
       }
 
-      $valArr[$k] = trim(stripslashes($v));
+      $valArr[$k] = trim((string) $v);
     }
 
     return $valArr;
@@ -253,8 +240,7 @@ class WPCustomerReviews3
         continue;
       }
 
-      // this is escaped on output by wp_kses() using allowedContentTags or allowedFieldTags, depending on the context
-      $this->p->$c = trim(stripslashes($val));
+      $this->p->$c = trim((string) $val);
     }
   }
 
@@ -264,13 +250,18 @@ class WPCustomerReviews3
 
     if (is_admin()) {
       // $_GET is used mainly by filters for admin pages, but no intended use case for this in frontend
+      // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin GET for list filters/settings UI.
       foreach ($_GET as $c => $val) {
         $this->p->$c = $val;
       }
     }
 
-    foreach ($_POST as $c => $val) {
-      $this->p->$c = $val;
+    // Admin settings/tools and admin-ajax (review submit, pager) only.
+    if (is_admin() || wp_doing_ajax()) {
+      // phpcs:ignore WordPress.Security.NonceVerification.Missing -- POST ingested only in admin/AJAX; AJAX verified via check_ajax_referer.
+      foreach ($_POST as $c => $val) {
+        $this->p->$c = $val;
+      }
     }
 
     $this->sanitize_p_obj();
@@ -283,16 +274,6 @@ class WPCustomerReviews3
     // if using WPCR_INSERT, we always force the page active so reviews will output
     if ($this->force_active_page === "shortcode_insert") {
       return $this->force_active_page;
-    }
-
-    if ($this->remote_debug()) {
-      $debug = "\n <div style='display:none;'>";
-      $debug .= "\n wpcr3_info is_active_page() post={$post->ID} is_active_page=";
-      $debug .= "" . print_r(is_singular(), true);
-      $debug .= "," . print_r(is_single(), true);
-      $debug .= "," . print_r(is_page(), true);
-      $debug .= "\n </div>";
-      print $debug;
     }
 
     // not on a single post/page, do not output
@@ -321,7 +302,7 @@ class WPCustomerReviews3
 
     $size = strlen($chars);
     for ($i = 0; $i < $length; $i++) {
-      $str .= $chars[rand(0, $size - 1)];
+      $str .= $chars[wp_rand(0, $size - 1)];
     }
 
     return $str;
@@ -358,6 +339,7 @@ class WPCustomerReviews3
       intval($postid),
     );
 
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Aggregate rating query; prepared SQL, no core API equivalent.
     $results = $wpdb->get_results($query);
 
     $rtn = new stdClass();
@@ -487,18 +469,32 @@ class WPCustomerReviews3
       }
 
       // BEG: xss protect
-      foreach ($review as $k => $r) {
-        if ($k === $this->prefix . "_custom_fields" || $k === "content") {
-          continue;
-        }
+      $review_name_key = $this->prefix . "_review_name";
+      $review_title_key = $this->prefix . "_review_title";
+      $review_website_key = $this->prefix . "_review_website";
+      $review_rating_key = $this->prefix . "_review_rating";
+      $review_admin_response_key = $this->prefix . "_review_admin_response";
 
-        $review[$k] = wp_kses($r, $this->allowedFieldTags);
+      if (isset($review[$review_website_key]) && $review[$review_website_key] !== "") {
+        $review[$review_website_key] = esc_url($review[$review_website_key]);
       }
 
-      foreach ($review[$this->prefix . "_custom_fields"] as $k => $r) {
-        $review[$this->prefix . "_custom_fields"][$k]["value"] = wp_kses(
-          $r["value"],
-          $this->allowedFieldTags,
+      if (isset($review[$review_name_key])) {
+        $review[$review_name_key] = esc_html($review[$review_name_key]);
+      }
+
+      if (isset($review[$review_title_key])) {
+        $review[$review_title_key] = esc_html($review[$review_title_key]);
+      }
+
+      if (isset($review[$review_rating_key])) {
+        $review[$review_rating_key] = esc_attr($review[$review_rating_key]);
+      }
+
+      if (isset($review[$review_admin_response_key])) {
+        $review[$review_admin_response_key] = wp_kses(
+          $review[$review_admin_response_key],
+          $this->allowedContentTags,
         );
       }
 
@@ -506,6 +502,16 @@ class WPCustomerReviews3
         $review["content"],
         $this->allowedContentTags,
       );
+
+      foreach ($review[$this->prefix . "_custom_fields"] as $k => $r) {
+        $review[$this->prefix . "_custom_fields"][$k]["label"] = wp_kses(
+          $r["label"],
+          $this->allowedFieldTags,
+        );
+        $review[$this->prefix . "_custom_fields"][$k]["value"] = esc_html(
+          $r["value"],
+        );
+      }
       // END: xss protect
 
       $review["stars"] = $this->get_rating_template(
@@ -524,7 +530,7 @@ class WPCustomerReviews3
     if ($time === false) {
       $time = time();
     }
-    $date = date("Y-m-d\TH:i:sO", $time);
+    $date = gmdate("Y-m-d\TH:i:sO", $time);
     return substr($date, 0, strlen($date) - 2) . ":" . substr($date, -2);
   }
 
@@ -588,6 +594,10 @@ class WPCustomerReviews3
   function get_post_custom_single($postid)
   {
     $post = get_post($postid);
+    if (!$post instanceof WP_Post) {
+      return [];
+    }
+
     $meta = get_post_custom($postid);
 
     $out = [];
@@ -596,12 +606,7 @@ class WPCustomerReviews3
         continue;
       }
 
-      // escape output for both meta tags and html output
-      if ($key === "wpcr3_business_url") {
-        $out[$key] = esc_url($valArr[0]);
-      } else {
-        $out[$key] = esc_attr($valArr[0]);
-      }
+      $out[$key] = $valArr[0];
     }
 
     if ($post->post_type !== $this->prefix . "_review") {
@@ -621,7 +626,7 @@ class WPCustomerReviews3
 
     $post_date = explode(" ", $post->post_date);
     $out["post_date"] = $post_date[0];
-    $out["post_date"] = date("M j, Y", strtotime($out["post_date"]));
+    $out["post_date"] = wp_date("M j, Y", strtotime($out["post_date"]));
 
     return $out;
   }
@@ -635,7 +640,7 @@ class WPCustomerReviews3
     );
     $business_name = $parentData[$this->prefix . "_business_name"];
     $product_name = $parentData[$this->prefix . "_product_name"];
-    $postLink = get_permalink($postid);
+    $postLink = esc_url(get_permalink($postid));
 
     foreach ($reviews as &$review) {
       if ($format === "business") {
@@ -672,6 +677,8 @@ class WPCustomerReviews3
       $this->prefix . "_product_name",
       $blog_name,
     );
+    $parentData[$this->prefix . "_business_name_meta"] = esc_attr($business_name);
+    $parentData[$this->prefix . "_product_name_meta"] = esc_attr($product_name);
     $parentData[$this->prefix . "_business_name"] = wp_kses(
       $business_name,
       $this->allowedFieldTags,
@@ -680,7 +687,12 @@ class WPCustomerReviews3
       $product_name,
       $this->allowedFieldTags,
     );
-    $parentData[$this->prefix . "_business_url"] = $blog_url;
+    $business_url = $this->get_meta_or_default(
+      $parentData,
+      $this->prefix . "_business_url",
+      $blog_url,
+    );
+    $parentData[$this->prefix . "_business_url"] = esc_url($business_url);
 
     // todo: replace with provided image in future
     $parentData[$this->prefix . "_business_image"] =
@@ -776,8 +788,6 @@ class WPCustomerReviews3
 
     $got_post_meta = [];
 
-    $data["found_posts"] = $found_posts;
-
     $pagination = "";
     if ($opts->hidereviews == 0) {
       if ($found_posts > $opts->perpage && $opts->paginate === 1) {
@@ -819,7 +829,7 @@ class WPCustomerReviews3
 
       $reviews = $this->inject_parent_info($reviews, $postid, $data, $opts);
 
-      $data["postLink"] = get_permalink($postid);
+      $data["postLink"] = esc_url(get_permalink($postid));
       $data["on_same_page"] = $opts->on_postid == $postid;
 
       $data["reviews"] = [
@@ -912,7 +922,7 @@ class WPCustomerReviews3
   {
     $text = $review["content"];
     $text = str_replace("<br", " <br", $text);
-    $text = trim(strip_tags($text));
+    $text = trim(wp_strip_all_tags($text));
     $len = $opts->snippet;
 
     if (strlen($text) > $len) {
@@ -927,43 +937,17 @@ class WPCustomerReviews3
     return $text;
   }
 
-  function print_filters_for($hook = "")
-  {
-    global $wp_filter;
-    if (empty($hook) || !isset($wp_filter[$hook])) {
-      return;
-    }
-    print "<pre>";
-    print_r($wp_filter[$hook]);
-    print "</pre>";
-  }
-
   function get_data_attr_wrapper($postid)
   {
     return "data-wpcr3-content=\"{$postid}\"";
   }
 
-  function do_the_content($original_content, $fix = "wp")
+  function do_the_content($original_content)
   {
     global $post;
 
-    if ($this->remote_debug()) {
-      $debug = "\n<div style='display:none;'>wpcr3_info top_start</div>\n";
-      $debug .= "\n<div style='display:none;'>wpcr3_info fix={$fix}</div>\n";
-      $debug .= "\n<div style='display:none;'>wpcr3_info original_content={$original_content}</div>\n";
-      $debug .= "\n<div style='display:none;'>wpcr3_info top_end</div>\n";
-      print $debug;
-    }
-
     if (!isset($post) || !isset($post->ID) || intval($post->ID) == 0) {
       // we need a post object to do anything useful
-
-      if ($this->remote_debug()) {
-        $debug = "\n<div style='display:none;'>wpcr3_info no post id fix={$fix}</div>\n";
-        $debug .=
-          "\n<div style='display:none;'>wpcr3_info above returned from filter 1</div>\n";
-        print $debug;
-      }
 
       return $original_content;
     }
@@ -972,34 +956,11 @@ class WPCustomerReviews3
     $data_attr = $this->get_data_attr_wrapper($postid);
     $already_ran = strpos($original_content, $data_attr) !== false ? 1 : 0;
 
-    if ($this->remote_debug()) {
-      $debug = "\n <div style='display:none;'>";
-      $debug .=
-        "\n wpcr3_info postid={$postid} fix={$fix} already_ran={$already_ran} strlen=" .
-        strlen($original_content);
-      $debug .= "\n </div>";
-      print $debug;
-    }
-
     // return original content if reviews should not display for this post
     $is_active_page = $this->is_active_page();
 
-    if ($this->remote_debug()) {
-      $debug = "\n <div style='display:none;'>wpcr3_info post={$post->ID} fix={$fix} already_ran={$already_ran} is_active_page={$is_active_page}</div> \n";
-      $debug .=
-        "\n <div style='display:none;'>wpcr3_info above returned from filter 2</div> \n";
-      print $debug;
-    }
-
     if ($already_ran === 1 || $is_active_page === 0) {
       return $original_content;
-    }
-
-    if ($this->remote_debug()) {
-      $debug = "\n <div style='display:none;'>wpcr3_info on_active_page post={$post->ID} fix={$fix} is_active_page={$is_active_page}</div> \n";
-      $debug .=
-        "\n <div style='display:none;'>wpcr3_info above returned from filter 3</div> \n";
-      print $debug;
     }
 
     $this->reset_active_page();
@@ -1036,11 +997,6 @@ class WPCustomerReviews3
 
   function get_form_field($name, $fieldArr)
   {
-    $posted_name = $this->prefix . "_" . $name;
-
-    $params = [$posted_name];
-    $this->param($params);
-
     $required = $fieldArr["require"] == 1;
 
     $data = [
@@ -1048,7 +1004,7 @@ class WPCustomerReviews3
       "label" => wp_kses($fieldArr["label"], $this->allowedFieldTags),
       "required" => $required ? "*" : "",
       "class" => $required ? $this->prefix . "_required" : "",
-      "value" => wp_kses($this->p->$posted_name, $this->allowedFieldTags),
+      "value" => "",
     ];
     $field = wpcr_Goatee::fill(
       $this->options["templates"]["frontend_review_form_text_field"],
@@ -1071,13 +1027,8 @@ class WPCustomerReviews3
 
   function get_review_field()
   {
-    $posted_name = $this->prefix . "_ftext";
-
-    $params = [$posted_name];
-    $this->param($params);
-
     $data = [
-      "value" => wp_kses($this->p->$posted_name, $this->allowedContentTags),
+      "value" => "",
     ];
     $field = wpcr_Goatee::fill(
       $this->options["templates"]["frontend_review_form_review_field"],
@@ -1127,88 +1078,103 @@ class WPCustomerReviews3
   function generateTitle($fname)
   {
     $fname = strlen($fname) === 0 ? "Anonymous" : $fname;
-    $datetime = date("m/d/Y h:i");
+    $datetime = wp_date("m/d/Y h:i");
     return "{$fname} @ {$datetime}";
   }
 
-  function isXssAttempt($s)
+  function normalize_xss_probe_string(string $s): string
   {
-    // lowercase, url decode, decode entities, remove spaces, tabs, linebreaks, chars 0-31,127
-    $s = preg_replace(
-      '/[\s\x00-\x1F\x7F]/',
-      "",
-      html_entity_decode(urldecode(strtolower($s))),
-    );
+    $s = str_replace("\0", '', $s);
+    for ($i = 0; $i < 4; $i++) {
+      $next = html_entity_decode(urldecode($s), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+      if ($next === $s) {
+        break;
+      }
+      $s = $next;
+    }
 
-    if (stripos($s, "javascript:") !== false) {
-      return true;
+    $s = strtolower($s);
+    $normalized = preg_replace('/[\s\x00-\x1F\x7F]/u', '', $s);
+
+    return $normalized ?? '';
+  }
+
+  function isXssAttempt($s, string $field = ''): bool
+  {
+    $s = $this->normalize_xss_probe_string((string) $s);
+    if ($s === '') {
+      return false;
     }
-    if (stripos($s, "eval(") !== false) {
-      return true;
+
+    // Tag substrings and explicit on* handlers omitted: '<' and on*= regex cover them.
+    $needles = [
+      'javascript:',
+      'vbscript:',
+      'data:text/html',
+      'data:application',
+      '<',
+      '>',
+      'srcdoc',
+      '%3c',
+      '%3e',
+      '\x3c',
+      '\u003c',
+    ];
+
+    // JS execution needles on short identity fields only; ftext may contain prose like "function(ality)".
+    if ($field !== 'ftext') {
+      $needles = array_merge($needles, [
+        'eval(',
+        'atob(',
+        'alert(',
+        'settimeout(',
+        'setinterval(',
+        'function(',
+      ]);
     }
-    if (stripos($s, "atob(") !== false) {
-      return true;
+
+    foreach ($needles as $needle) {
+      if (strpos($s, $needle) !== false) {
+        return true;
+      }
     }
-    if (stripos($s, "alert(") !== false) {
-      return true;
-    }
-    if (stripos($s, "settimeout(") !== false) {
-      return true;
-    }
-    if (stripos($s, "setinterval(") !== false) {
-      return true;
-    }
-    if (stripos($s, "<") !== false) {
-      return true;
-    }
-    if (stripos($s, ">") !== false) {
-      return true;
-    }
-    if (stripos($s, "onerror") !== false) {
-      return true;
-    }
-    if (stripos($s, "onload") !== false) {
-      return true;
-    }
-    if (stripos($s, "onfocus") !== false) {
-      return true;
-    }
-    if (stripos($s, "onblur") !== false) {
-      return true;
-    }
-    if (stripos($s, "onchange") !== false) {
-      return true;
-    }
-    if (stripos($s, "oninput") !== false) {
-      return true;
-    }
-    if (stripos($s, "onclick") !== false) {
-      return true;
-    }
-    if (stripos($s, "onpropertychange") !== false) {
-      return true;
-    }
-    if (stripos($s, "onreadystatechange") !== false) {
-      return true;
-    }
-    if (stripos($s, "onmouse") !== false) {
-      return true;
-    } // onmouse*
-    if (stripos($s, "onkey") !== false) {
-      return true;
-    } // onkey*
-    if (stripos($s, '\"') !== false) {
-      return true;
-    }
-    if (stripos($s, "\'") !== false) {
+
+    if (preg_match('/\bon[a-z]{2,}\s*=/', $s) === 1) {
       return true;
     }
 
     return false;
   }
 
+  function sanitize_pager_classes($classes)
+  {
+    $classes = trim(wp_strip_all_tags((string) $classes));
+    if ($classes === "") {
+      return $this->prefix . "_in_content";
+    }
+
+    return preg_replace('/[^a-zA-Z0-9_\- ]/', "", $classes);
+  }
+
+  function sanitize_pager_morelink($morelink)
+  {
+    $morelink = trim(wp_strip_all_tags((string) $morelink));
+    if ($morelink === "") {
+      return "";
+    }
+
+    $url = esc_url_raw($morelink);
+    if ($url === "") {
+      return "";
+    }
+
+    return substr($url, 0, 2048);
+  }
+
   function ajax()
   {
+    check_ajax_referer('wpcr3_ajax', '_wpnonce');
+
     header("Cache-Control: no-store, no-cache, must-revalidate, max-age=0");
     header("Cache-Control: post-check=0, pre-check=0", false);
     header("Pragma: no-cache");
@@ -1236,6 +1202,7 @@ class WPCustomerReviews3
       "femail",
       "fname",
       "frating",
+      "ftext",
       "ftitle",
       "fwebsite",
       "pageOpts",
@@ -1249,18 +1216,20 @@ class WPCustomerReviews3
 
     $this->param($params, $posted);
 
-    // loop over expected params to check XSS
-    // because plugins/servers sometimes inject vars into $_GET and $_POST, and...
-    // $this->p, $this->posted then ends up with more than expected
+    // isXssAttempt rejects encoded markup/handlers/JS before strip; wp_strip_all_tags is the storage sanitizer.
+    // Spambot honeypots (fconfirm*, url, website, checkid2) are checked separately below.
+    // Only expected params are checked; servers sometimes inject extra keys into $_POST.
     foreach ($params as $k) {
       $v = $posted->$k;
 
-      if ($this->isXssAttempt($v) === true) {
+      if ($k !== "pageOpts" && $this->isXssAttempt($v, $k) === true) {
         $rtn->err[] = "You have failed the spambot check. Code 0";
         die(json_encode($rtn));
       }
 
-      $posted->$k = trim(strip_tags($v));
+      if ($k !== "pageOpts") {
+        $posted->$k = trim(wp_strip_all_tags($v));
+      }
     }
 
     $ajaxAct = $posted->ajaxAct2;
@@ -1298,13 +1267,20 @@ class WPCustomerReviews3
         die(json_encode($rtn));
       } // die here if we failed any spambot checks
 
+      $rating = (int) $posted->frating;
+      if ($rating < 1 || $rating > 5) {
+        $rtn->err[] = "Please select a valid rating.";
+        die(json_encode($rtn));
+      }
+      $posted->frating = (string) $rating;
+
       // passed all spambot checks, continue
 
       $title = $this->generateTitle($posted->fname);
 
       $newpost = [
         "post_author" => 1,
-        "post_date" => date("Y-m-d H:i:s"),
+        "post_date" => current_time("mysql"),
         "post_content" => nl2br($posted->ftext),
         "post_status" => "pending",
         "post_title" => $title,
@@ -1312,10 +1288,13 @@ class WPCustomerReviews3
       ];
       $newpostid = wp_insert_post($newpost, true);
 
+      $review_ip = isset($_SERVER["REMOTE_ADDR"])
+        ? sanitize_text_field(wp_unslash($_SERVER["REMOTE_ADDR"]))
+        : "";
       update_post_meta(
         $newpostid,
         $this->prefix . "_review_ip",
-        $_SERVER["REMOTE_ADDR"],
+        $review_ip,
       );
 
       if (isset($posted->postid)) {
@@ -1371,7 +1350,7 @@ class WPCustomerReviews3
         }
       }
 
-      $datetime = date("m/d/Y h:i");
+      $datetime = wp_date("m/d/Y h:i");
       @wp_mail(
         get_bloginfo("admin_email"),
         "WP Customer Reviews: New Review Posted on {$datetime}",
@@ -1380,7 +1359,19 @@ class WPCustomerReviews3
           " via WP Customer Reviews. \n\nYou will need to approve this review before it will appear on your site.",
       );
     } elseif ($ajaxAct === "pager") {
-      $opts = json_decode($posted->pageOpts);
+      $opts = json_decode($posted->pageOpts, false);
+      if (!is_object($opts)) {
+        $rtn->err[] = "You have failed the spambot check. Code 8";
+        die(json_encode($rtn));
+      }
+
+      if (isset($opts->classes)) {
+        $opts->classes = $this->sanitize_pager_classes($opts->classes);
+      }
+      if (isset($opts->morelink)) {
+        $opts->morelink = $this->sanitize_pager_morelink($opts->morelink);
+      }
+
       $opts->thispage = $posted->page;
       $opts->ajax = 1;
       $opts->showsupport = 0;
@@ -1398,7 +1389,6 @@ class WPCustomerReviews3
   function getAjaxURL()
   {
     return admin_url("admin-ajax.php") . "?action=wpcr3-ajax";
-    //return $this->getpluginurl()."include/ajax.php";
   }
 
   // used in extended classes to grab already-set information we care about from main class
@@ -1423,8 +1413,6 @@ class WPCustomerReviews3
     // "Wordpress SEO - Yoast" hijacks the_content and breaks all kinds of plugins
     // luckily they provide a filter to fix it
     // add_filter('wpseo_pre_analysis_post_content', array(&$this, 'do_the_content_wpseo'), 15);
-
-    // $this->print_filters_for('the_content'); exit();
 
     add_action("wp_ajax_" . $this->prefix . "-ajax", [&$this, "ajax"]);
     add_action("wp_ajax_nopriv_" . $this->prefix . "-ajax", [&$this, "ajax"]);
@@ -1459,6 +1447,9 @@ class WPCustomerReviews3
     );
     wp_enqueue_style("wp-customer-reviews-3-frontend");
     wp_enqueue_script("wp-customer-reviews-3-frontend");
+    wp_localize_script('wp-customer-reviews-3-frontend', 'wpcr3Ajax', [
+      'nonce' => wp_create_nonce('wpcr3_ajax'),
+    ]);
   }
 
   function create_post_type()
@@ -1499,12 +1490,12 @@ class WPCustomerReviews3
   function shortcode_insert()
   {
     $this->force_active_page = "shortcode_insert";
-    return $this->do_the_content("", "shortcode_insert");
+    return $this->do_the_content("");
   }
 
   function strip_trim($val)
   {
-    return trim(strip_tags($val));
+    return trim(wp_strip_all_tags($val));
   }
 
   function strip_trim_intval($val)
@@ -1605,11 +1596,7 @@ class WPCustomerReviews3
   {
     $url = $this->getpluginurl();
     if (strpos($url, "://") === false) {
-      $proto =
-        !empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] != "off"
-          ? "https://"
-          : "http://";
-      $url = $proto . $_SERVER["HTTP_HOST"] . $url;
+      $url = home_url($url);
     }
     return $url;
   }
@@ -1624,11 +1611,11 @@ class WPCustomerReviews3
   }
 }
 
-function start_wpcr3()
+function wpcr3_start(): WPCustomerReviews3
 {
-  $WPCustomerReviews3 = new WPCustomerReviews3();
-  $WPCustomerReviews3->start();
-  return $WPCustomerReviews3;
+  $wpcr3_plugin = new WPCustomerReviews3();
+  $wpcr3_plugin->start();
+  return $wpcr3_plugin;
 }
 
-$WPCustomerReviews3 = start_wpcr3();
+$wpcr3_plugin = wpcr3_start();

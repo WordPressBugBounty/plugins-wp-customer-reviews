@@ -129,6 +129,7 @@ wpcr3.submit = function(e) {
 		if (v.attr('type') === 'checkbox' && v.is(':checked') === false) { val = '0'; }
 		ajaxData[v.attr('name')] = val;
 	});
+	ajaxData._wpnonce = wpcr3Ajax.nonce;
 	
 	wpcr3.ajaxPost(parent, ajaxData, function(err, rtn) {
 		if (err) { return; }
@@ -197,7 +198,7 @@ wpcr3.init = function() {
 		var pageOpts = pager.attr("data-page-opts");
 		var on_postid = parent.attr("data-on-postid");
 		
-		var ajaxData = { ajaxAct2 : "pager", on_postid : on_postid, page : page, pageOpts : pageOpts };
+		var ajaxData = { ajaxAct2 : "pager", on_postid : on_postid, page : page, pageOpts : pageOpts, _wpnonce : wpcr3Ajax.nonce };
 		wpcr3.ajaxPost(parent, ajaxData, function(err, rtn) {
 			if (err) { return; }
 			

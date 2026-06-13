@@ -1,4 +1,9 @@
 <?php
+
+if (!defined('ABSPATH')) {
+	exit;
+}
+
 class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 {
 	var $default_options = array();
@@ -35,7 +40,7 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 			}
 			?>
 		</tbody></table>
-		<input type="hidden" name="<?php echo $submit_name; ?>" value="<?php echo $id; ?>" />
+		<input type="hidden" name="<?php echo esc_attr($submit_name); ?>" value="<?php echo esc_attr($id); ?>" />
 		<?php
 		submit_button();
 	}
@@ -50,21 +55,22 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 		$value = $this->options[$settingObj->name];
 		
 		echo '
-			<tr class="setting_'.$name.'">
+			<tr class="setting_'.esc_attr($name).'">
 				<th scope="row">
-					<label title="'.$options->hint.'" for="'.$name.'">'.$settingObj->label.'</label>
-					<div style="font-size:10px;font-weight:normal;">'.$options->hint.'</div>
+					<label title="'.esc_attr($options->hint).'" for="'.esc_attr($name).'">'.esc_html($settingObj->label).'</label>
+					<div style="font-size:10px;font-weight:normal;">'.esc_html($options->hint).'</div>
 				</th>
 				<td>
 		';
 		
 		if ($options->type === "text") {
-			echo '	<input class="'.$options->class.'" type="text" name="'.$name.'" value="'.$value.'" />';
+			echo '	<input class="'.esc_attr($options->class).'" type="text" name="'.esc_attr($name).'" value="'.esc_attr($value).'" />';
 		} else if ($options->type === "select") {
-			echo '	<select class="'.$options->class.'" name="'.$name.'">';
+			echo '	<select class="'.esc_attr($options->class).'" name="'.esc_attr($name).'">';
 			foreach ($options->options as $opt) {
-				$selected = ($value == $opt->value) ? 'selected="selected"' : '';
-				echo '		<option '.$selected.' value="'.$opt->value.'">'.$opt->label.'</option>';
+				echo '		<option value="'.esc_attr($opt->value).'" ';
+				selected($value, $opt->value, false);
+				echo '>'.esc_html($opt->label).'</option>';
 			}
 			echo '	</select>';
 		} else if ($options->type === "multi_input_checkbox") {
@@ -73,9 +79,9 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 				echo '		<tr><td>';
 				if (isset($options->editable_label) && $options->editable_label == "1") {
 					$label = wp_kses($value[$valObj->value]['label'], $this->allowedFieldTags);
-					echo '<input class="'.$options->class.'" name="'.$name.'['.$valObj->value.'][label]" value="'.$label.'" />';
+					echo '<input class="'.esc_attr($options->class).'" name="'.esc_attr($name).'['.esc_attr($valObj->value).'][label]" value="'.esc_attr($label).'" />';
 				} else {
-					echo $value[$valObj->value]['label'];
+					echo esc_html($value[$valObj->value]['label']);
 				}
 				echo '		</td>';
 				
@@ -86,10 +92,11 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 					}
 					$cbObj->class = isset($cbObj->class) ? $cbObj->class : "";
 					$myValue = $value[$valObj->value][$cbObj->value];
-					$checked = ($myValue == "1") ? 'checked="checked"' : '';
-					echo '	<td><label><input class="'.$cbObj->class.'" '.$checked.' name="'.$name.'['.$valObj->value.']['.$cbObj->value.']" type="checkbox" value="1" /> '.$cbObj->label.'</label></td>';
+					echo '	<td><label><input class="'.esc_attr($cbObj->class).'" ';
+					checked($myValue, '1', false);
+					echo ' name="'.esc_attr($name).'['.esc_attr($valObj->value).']['.esc_attr($cbObj->value).']" type="checkbox" value="1" /> '.esc_html($cbObj->label).'</label></td>';
 				}
-				echo '		<td style="font-size:10px;">'.$valObj->hint.'</td>';
+				echo '		<td style="font-size:10px;">'.esc_html($valObj->hint).'</td>';
 				echo '		</tr>';
 			}
 			echo '	</table>';
@@ -394,8 +401,8 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 	}
 	
 	function plugin_settings_link($links) {
-        $url = get_admin_url().'admin.php?page='.$this->options_url_slug;
-        array_unshift($links, "<a href='$url'>Settings</a>");
+        $url = esc_url(get_admin_url() . 'admin.php?page=' . $this->options_url_slug);
+        array_unshift($links, '<a href="' . $url . '">Settings</a>');
         return $links;
     }
 	
@@ -407,6 +414,7 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 	}
 	
 	function redirect($url, $cookie = array()) {
+        $url = esc_url($url);
         $headers_sent = headers_sent();
         
         if ($headers_sent == true) {
@@ -416,12 +424,14 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
                     "Processing... Please wait..." .
                     "<script type='text/javascript'>";
             foreach ($cookie as $col => $val) {
-                $val = preg_replace("/\r?\n/", "\\n", addslashes($val));
-                $out .= "document.cookie=\"$col=$val\";";
+                $cookie_name = esc_js((string) $col);
+                $cookie_val = esc_js((string) $val);
+                $out .= 'document.cookie=' . wp_json_encode($cookie_name . '=' . $cookie_val) . ';';
             }
-            $out .= "window.location='$url';";
+            $out .= 'window.location=' . wp_json_encode($url) . ';';
             $out .= "</script>";
             $out .= "</div></body></html>";
+            // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Redirect fallback HTML; dynamic values escaped via esc_js/wp_json_encode above.
             echo $out;
         } else {
             foreach ($cookie as $col => $val) {
@@ -430,7 +440,7 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 			if (ob_get_level() > 0) {
 				@ob_end_clean();
 			}
-            wp_redirect($url); // a real redirect
+            wp_safe_redirect($url);
         }
         
         exit();
@@ -438,7 +448,6 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 	
 	/* begin - admin notices */
 	function admin_notices() {
-		$url = $_SERVER['REQUEST_URI'] . (strstr($_SERVER['REQUEST_URI'], "?") === false ? "?" : "&");
 		$notices = array(
 			"1" => array(
 				"text" => "WP Customer Reviews | Updated to v3 | <a href='admin.php?page=wpcr3_options&tab=tools'>Missing / Duplicate Reviews?</a>",
@@ -449,7 +458,12 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 		foreach ($notices as $noticeKey => $notice) {
 			$preNoticeKey = $this->prefix."_admin_notice_".$noticeKey;
 			if (!isset($this->options[$preNoticeKey]) && $notice["enabled"] === true) {
-				echo "<div class='updated'><p>{$notice["text"]}&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<a href='{$url}{$preNoticeKey}=dismiss'>Dismiss</a></p></div>";
+				echo '<div class="updated"><p>';
+				echo wp_kses_post($notice['text']);
+				printf(
+					'&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;<a href="%s">Dismiss</a></p></div>',
+					esc_url(add_query_arg($preNoticeKey, 'dismiss'))
+				);
 			}
 		}
 	}
@@ -708,41 +722,35 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 
 		// using a direct query here because we only want specific fields, and this needs to be performant
 
-		$query = "
-			SELECT p.ID,p.post_title,p.post_name
+		$enable_meta_key = $this->prefix . '_enable';
+
+		$query = $wpdb->prepare(
+			"SELECT p.ID, p.post_title, p.post_name
 			FROM {$wpdb->posts} p
-			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = '{$this->prefix}_enable' AND pm.meta_value = '1'
+			LEFT JOIN {$wpdb->postmeta} pm ON pm.post_id = p.ID AND pm.meta_key = %s AND pm.meta_value = '1'
 			WHERE p.post_type NOT IN ('attachment')
 			AND p.post_title != ''
-			AND p.post_status IN ('publish','pending','draft','future','private','trash')";
-		
-		/*
-		// 3.2.4 - removed this to allow for finding posts that are not WPCR enabled (checkbox unchecked), yet devs want to hack their needs into place using shortcodes
-		if ($only_plugin_enabled_posts) {
-			$query .= "
-				AND pm.meta_value = '1'";
-		}
-		*/
+			AND p.post_status IN ('publish','pending','draft','future','private','trash')",
+			$enable_meta_key
+		);
 
 		if ($keyword !== "") {
-			$keyword = '%' . esc_sql($keyword) . '%';
-
-			$query .= "
-				AND (p.post_title LIKE '{$keyword}' OR p.post_name LIKE '{$keyword}')";
+			$like_keyword = '%' . $wpdb->esc_like($keyword) . '%';
+			$query .= $wpdb->prepare(
+				" AND (p.post_title LIKE %s OR p.post_name LIKE %s)",
+				$like_keyword,
+				$like_keyword
+			);
 		}
 
-		// show WPCR meta-checkbox-enabled posts first
 		$query .= "
 			ORDER BY pm.meta_value DESC, p.post_title ASC";
 
 		if ($skip !== false && $limit !== false) {
-			$skip = intval($skip);
-			$limit = intval($limit);
-
-			$query .= "
-				LIMIT $skip, $limit";
+			$query .= $wpdb->prepare(" LIMIT %d, %d", intval($skip), intval($limit));
 		}
 
+		// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.NotPrepared -- Admin autocomplete; prepared query, no core API for this shape.
 		return $wpdb->get_results($query, OBJECT);
 	}
 	
@@ -798,17 +806,21 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 				$reviewed_post_id = get_post_meta($post_id, $this->prefix.'_review_post' ,true);
 				if ($reviewed_post_id !== "") {
 					$reviewed_post = get_post($reviewed_post_id);
-					$permalink = get_permalink($reviewed_post_id);
-					$not_published = ($reviewed_post->post_status !== "publish") ? "(Not Published)" : "";
-					echo "<a target='_blank' href='{$permalink}'>{$reviewed_post->post_title}</a> {$not_published}";
+					if ($reviewed_post instanceof WP_Post) {
+						$permalink = get_permalink($reviewed_post_id);
+						$not_published = ($reviewed_post->post_status !== "publish") ? "(Not Published)" : "";
+						echo '<a target="_blank" rel="noopener noreferrer" href="' . esc_url($permalink) . '">' . esc_html($reviewed_post->post_title) . '</a> ' . esc_html($not_published);
+					} else {
+						echo esc_html__('Not Assigned', 'wp-customer-reviews');
+					}
 				} else {
-					echo "Not Assigned";
+					echo esc_html__('Not Assigned', 'wp-customer-reviews');
 				}
 				break;
 			case $this->prefix.'_review_rating':
 				$stars = get_post_meta($post_id, $this->prefix.'_review_rating' ,true);
-				echo "{$stars} ";
-				echo (intval($stars) === 1) ? "star" : "stars";
+				echo esc_html((string) $stars) . ' ';
+				echo esc_html((intval($stars) === 1) ? 'star' : 'stars');
 				break;
 		}
 	}
@@ -846,7 +858,8 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 		if ($screen->post_type !== $this->prefix.'_review') { return; }
 		
 		$filterName = $name = $this->prefix."_reviews_post_filter";
-		if (!isset($_GET[$filterName]) || intval($_GET[$filterName]) === 0) { return; }
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Admin list filter; value cast to int.
+		if (!isset($_GET[$filterName]) || (int) wp_unslash($_GET[$filterName]) === 0) { return; }
 		
 		add_filter('posts_where' ,array(&$this, 'load_custom_filter_2'));
 	}
@@ -855,7 +868,8 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 	function load_custom_filter_2($where) {
 		global $wpdb;
 		$filterName = $name = $this->prefix."_reviews_post_filter";
-		$filterVal = intval($_GET[$filterName]);
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Admin list filter; value cast to int.
+		$filterVal = (int) wp_unslash($_GET[$filterName] ?? 0);
         $where .= " AND ID IN (SELECT post_id FROM {$wpdb->postmeta} WHERE meta_key='{$this->prefix}_review_post' AND meta_value = {$filterVal})";		
 		return $where;
 	}
@@ -903,16 +917,16 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 		$getPostID = ($this->p->wpcr3_reviews_post_filter !== "") ? intval($this->p->wpcr3_reviews_post_filter) : "";
 		$selectedTitle = ($getPostID !== "") ? $this->selected_label_function_500($getPostID) : false;
 		?>
-		<select style="width:450px;" name="<?php echo $filterName; ?>" id="<?php echo $filterName;?>">
+		<select style="width:450px;" name="<?php echo esc_attr($filterName); ?>" id="<?php echo esc_attr($filterName); ?>">
 			<option></option>
 			<?php if ($selectedTitle !== false) : ?>
-				<option selected="selected" value="<?php echo $getPostID; ?>"><?php echo $selectedTitle; ?></option>
+				<option selected="selected" value="<?php echo esc_attr((string) $getPostID); ?>"><?php echo esc_html($selectedTitle); ?></option>
 			<?php endif; ?>
 		</select>
 		<script>
-			jQuery('#<?php echo $filterName; ?>').wpcr3_select({
+			jQuery('#<?php echo esc_js($filterName); ?>').wpcr3_select({
 				ajax : {
-					url : '<?php echo admin_url('admin-ajax.php'); ?>?action=wpcr3_enabled_posts',
+					url : '<?php echo esc_url(admin_url('admin-ajax.php') . '?action=wpcr3_enabled_posts'); ?>',
 					dataType : 'json',
 					delay : 250 // 250ms debounce
 				},
@@ -936,23 +950,25 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 			
 			// get current post meta data
 			$meta = get_post_meta($post->ID, $field['id'], true);
-			
-			// xss protect
-			$meta = esc_html($meta);
+			$field_id = $field['id'];
+			$field_name = $field['name'];
+			$field_default = $field['default'];
+			$field_desc = $field['desc'];
+			$meta_value = ($meta !== '') ? $meta : $field_default;
 			
 			echo '<tr>',
-				 '<th style="width:30%"><label for="', $field['id'], '">', $field['name'], '</label></th>',
+				 '<th style="width:30%"><label for="', esc_attr($field_id), '">', esc_html($field_name), '</label></th>',
 				 '<td>';
 			switch ($field['type']) {
 				case 'text':
-					echo '<input type="text" name="', $field['id'], '" id="', $field['id'], '" value="', $meta ? $meta : $field['default'], '" size="30" style="width:97%" />';
+					echo '<input type="text" name="', esc_attr($field_id), '" id="', esc_attr($field_id), '" value="', esc_attr($meta_value), '" size="30" style="width:97%" />';
 					break;
 				case 'textarea':
-					echo '<textarea name="', $field['id'], '" id="', $field['id'], '" cols="60" rows="4" style="width:97%">', $meta ? $meta : $field['default'], '</textarea>';
+					echo '<textarea name="', esc_attr($field_id), '" id="', esc_attr($field_id), '" cols="60" rows="4" style="width:97%">', esc_textarea($meta_value), '</textarea>';
 					break;
 				case 'select':
 				case 'select2':
-					echo '<select style="width:97%;" name="', $field['id'], '" id="', $field['id'], '">';
+					echo '<select style="width:97%;" name="', esc_attr($field_id), '" id="', esc_attr($field_id), '">';
 
 					if ($field['type'] === 'select2') {
 						if (isset($field['typeOptions']['select2']['placeholder'])) {
@@ -970,24 +986,24 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 					}
 
 					foreach ($field['options'] as $value => $label) {
-						echo '<option value="'.$value.'" ', $meta == $value ? ' selected="selected"' : '', '>', $label, '</option>';
+						echo '<option value="', esc_attr((string) $value), '"', ($meta == $value ? ' selected="selected"' : ''), '>', esc_html($label), '</option>';
 					}
 					echo '</select>';
 
 					if ($field['type'] === 'select2') {
 						?>
 						<script>
-							jQuery('#<?php echo $field['id']; ?>').wpcr3_select(<?php echo json_encode($field['typeOptions']['select2']); ?>);
+							jQuery('#<?php echo esc_js($field_id); ?>').wpcr3_select(<?php echo wp_json_encode($field['typeOptions']['select2']); ?>);
 						</script>
 						<?php
 					}
 
 					break;
 				case 'checkbox':
-					echo '<input value="1" type="checkbox" name="', $field['id'], '" id="', $field['id'], '"', $meta ? ' checked="checked"' : '', ' />';
+					echo '<input value="1" type="checkbox" name="', esc_attr($field_id), '" id="', esc_attr($field_id), '"', ($meta ? ' checked="checked"' : ''), ' />';
 					break;
 			}
-			echo '<div style="padding-top:5px;"><small>'.$field['desc'].'</small></div>';
+			echo '<div style="padding-top:5px;"><small>', esc_html($field_desc), '</small></div>';
 			echo '<td></tr>';
 		}
 		
@@ -1015,11 +1031,11 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 	/* v4 uuid */
 	function gen_uuid() {
 		return sprintf( '%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0xffff ),
-			mt_rand( 0, 0x0fff ) | 0x4000,
-			mt_rand( 0, 0x3fff ) | 0x8000,
-			mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff ), mt_rand( 0, 0xffff )
+			wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff ),
+			wp_rand( 0, 0xffff ),
+			wp_rand( 0, 0x0fff ) | 0x4000,
+			wp_rand( 0, 0x3fff ) | 0x8000,
+			wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff ), wp_rand( 0, 0xffff )
 		);
 	}
 	
@@ -1126,7 +1142,7 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 
 	function security() {
 		if (!current_user_can('manage_options')) {
-			wp_die( __('You do not have sufficient permissions to access this page.') );
+			wp_die(esc_html__('You do not have sufficient permissions to access this page.', 'wp-customer-reviews'));
 		}
 	}
 	
@@ -1139,9 +1155,9 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 				<div class="inside">
 					<p>
 						<?php if ($this->pro) : ?>
-							Version: <strong><?php echo $this->plugin_version; ?> PRO</strong>
+							Version: <strong><?php echo esc_html($this->plugin_version); ?> PRO</strong>
 						<?php else: ?>
-							Version: <strong><?php echo $this->plugin_version; ?> Lite <!--(<a class="boldBlue" target="_blank" href="<?php echo $this->prolink; ?>?from=about_upgrade">Upgrade to Pro</a>)--> </strong>
+							Version: <strong><?php echo esc_html($this->plugin_version); ?> Lite</strong>
 						<?php endif; ?>
 					</p>
 					<p>
@@ -1149,9 +1165,8 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 					</p>
 				</div>
 				<div class="inside bgblue">
-					Plugin Homepage: <a target="_blank" href="<?php echo $this->url; ?>?from=about"><?php echo $this->url; ?></a><br /><br />
-					Bug Report / Feature Request: <a target="_blank" href="mailto:wpcr@wpcr.freshdesk.com">wpcr@wpcr.freshdesk.com</a><br /><br />
-					Community Support Forum: <a target="_blank" href="<?php echo $this->support_link; ?>"><?php echo $this->support_link; ?></a><br /><br />
+					Plugin Homepage: <a target="_blank" rel="noopener noreferrer" href="<?php echo esc_url($this->url . '?from=about'); ?>"><?php echo esc_html($this->url); ?></a><br /><br />
+					Community Support Forum: <a target="_blank" rel="noopener noreferrer" href="<?php echo esc_url($this->support_link); ?>"><?php echo esc_html($this->support_link); ?></a><br /><br />
 					<div style="color:#BE5409;font-weight:bold;">
 						If you like this plugin, please <a target="_blank" href="https://wordpress.org/support/plugin/wp-customer-reviews/reviews/">login and rate it 5 stars here</a>
 					</div>
@@ -1165,7 +1180,7 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 						If you would like to be notified of any major updates, please enter your email 
 						address below. We do not share your information with any third party.
 					</p>
-					<label for="email">Email Address: </label><input type="text" size="32" id="act_email" name="act_email" value="<?php echo $this->options["act_email"]; ?>" /> (optional)
+					<label for="email">Email Address: </label><input type="text" size="32" id="act_email" name="act_email" value="<?php echo esc_attr($this->options["act_email"]); ?>" /> (optional)
 					<p>
 						Please support the developer! Can we display a small "Powered by WP Customer Reviews" link below reviews?
 					</p>
@@ -1272,11 +1287,11 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 			$file = $this->getplugindir().'include/admin/tools/'.$code.'.php';
 			
 			if (file_exists($file)) {
-				echo "<br />Running: <strong>{$code}</strong><br /><br />";
+				echo '<br />Running: <strong>' . esc_html($code) . '</strong><br /><br />';
 				include($file);
-				echo "<br /><strong>{$code} DONE!</strong><br />";
+				echo '<br /><strong>' . esc_html($code) . ' DONE!</strong><br />';
 			} else {
-				echo "<br /><strong>{$code} is not valid</strong><br />";
+				echo '<br /><strong>' . esc_html($code) . ' is not valid</strong><br />';
 			}
 			
 			echo "<hr />";
@@ -1363,38 +1378,43 @@ class WPCustomerReviewsAdmin3 extends WPCustomerReviews3
 			}
 			// end: activation
 			
-			$active_tab = isset($_GET['tab']) ? $_GET['tab'] : 'about';
+			$allowed_tabs = array('about', 'how_to_use', 'form_settings', 'display_settings', 'tools');
+			// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Tab nav GET param; allowlisted below.
+			$active_tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'about';
+			if (!in_array($active_tab, $allowed_tabs, true)) {
+				$active_tab = 'about';
+			}
 			$func_name = 'tab_'.$active_tab;
-			$slug = '?page='.$this->options_url_slug;
+			$settings_base_url = admin_url('admin.php?page=' . $this->options_url_slug);
 			?>
 			<style>
-				.<?php echo $this->prefix; ?>_myplugin_options .metabox-holder .postbox {
+				.<?php echo esc_attr($this->prefix); ?>_myplugin_options .metabox-holder .postbox {
 					width:auto;
 				}
-				.<?php echo $this->prefix; ?>_myplugin_options .metabox-holder .postbox h3 {
+				.<?php echo esc_attr($this->prefix); ?>_myplugin_options .metabox-holder .postbox h3 {
 					cursor:default;
 				}
-				.<?php echo $this->prefix; ?>_myplugin_options .metabox-holder .postbox .inside {
+				.<?php echo esc_attr($this->prefix); ?>_myplugin_options .metabox-holder .postbox .inside {
 					margin:0;
 					padding:10px;
 				}
-				.<?php echo $this->prefix; ?>_myplugin_options .metabox-holder .postbox .inside.bgblue {
+				.<?php echo esc_attr($this->prefix); ?>_myplugin_options .metabox-holder .postbox .inside.bgblue {
 					background:#eaf2fa;
 				}
-				.<?php echo $this->prefix; ?>_myplugin_options .metabox-holder .postbox .inside > p:first-child {
+				.<?php echo esc_attr($this->prefix); ?>_myplugin_options .metabox-holder .postbox .inside > p:first-child {
 					margin-top:0;
 				}
 			</style>
 			
-			<div class="wrap <?php echo $this->prefix; ?>_myplugin_options">
+			<div class="wrap <?php echo esc_attr($this->prefix); ?>_myplugin_options">
 				<h2>WP Customer Reviews - Settings</h2>
 				
 				<h2 class="nav-tab-wrapper">
-					<a href="<?php echo $slug;?>&tab=about" class="nav-tab <?php echo $active_tab == 'about' ? 'nav-tab-active' : ''; ?>">About</a>
-					<a href="<?php echo $slug;?>&tab=how_to_use" class="nav-tab <?php echo $active_tab == 'how_to_use' ? 'nav-tab-active' : ''; ?>">How to use</a>
-					<a href="<?php echo $slug;?>&tab=form_settings" class="nav-tab <?php echo $active_tab == 'form_settings' ? 'nav-tab-active' : ''; ?>">Review Form Settings</a>
-					<a href="<?php echo $slug;?>&tab=display_settings" class="nav-tab <?php echo $active_tab == 'display_settings' ? 'nav-tab-active' : ''; ?>">Display Settings</a>
-					<a href="<?php echo $slug;?>&tab=tools" class="nav-tab <?php echo $active_tab == 'tools' ? 'nav-tab-active' : ''; ?>">Tools</a>
+					<a href="<?php echo esc_url($settings_base_url . '&tab=about'); ?>" class="nav-tab <?php echo ($active_tab === 'about' ? 'nav-tab-active' : ''); ?>">About</a>
+					<a href="<?php echo esc_url($settings_base_url . '&tab=how_to_use'); ?>" class="nav-tab <?php echo ($active_tab === 'how_to_use' ? 'nav-tab-active' : ''); ?>">How to use</a>
+					<a href="<?php echo esc_url($settings_base_url . '&tab=form_settings'); ?>" class="nav-tab <?php echo ($active_tab === 'form_settings' ? 'nav-tab-active' : ''); ?>">Review Form Settings</a>
+					<a href="<?php echo esc_url($settings_base_url . '&tab=display_settings'); ?>" class="nav-tab <?php echo ($active_tab === 'display_settings' ? 'nav-tab-active' : ''); ?>">Display Settings</a>
+					<a href="<?php echo esc_url($settings_base_url . '&tab=tools'); ?>" class="nav-tab <?php echo ($active_tab === 'tools' ? 'nav-tab-active' : ''); ?>">Tools</a>
 				</h2>
 				
 				<form method="POST" action="">

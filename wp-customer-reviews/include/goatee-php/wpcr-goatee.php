@@ -14,6 +14,11 @@ $data = array('name' => 'Aaron');
 $filled = Goatee::fill($html, $data); // filled should contain '<div>Aaron</div>'
 */
 
+if (!defined('ABSPATH')) {
+	exit;
+}
+
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedClassFound -- Legacy templating class; rename deferred.
 class wpcr_Goatee {
 	private static function context($html) {
 		$html_len = strlen($html);

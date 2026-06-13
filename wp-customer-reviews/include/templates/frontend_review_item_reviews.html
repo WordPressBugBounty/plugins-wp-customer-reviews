@@ -18,12 +18,13 @@ Additionally, this file will be overwritten with each plugin update and/or activ
 	<div class="wpcr3_review_author">&nbsp;by&nbsp;
 		<span class="wpcr3_caps">
 			{{:wpcr3_review_website}}
-			<a target="_blank" href="{{wpcr3_review_website}}">{{wpcr3_review_name}}</a>
+			<a target="_blank" rel="noopener noreferrer" href="{{wpcr3_review_website}}">{{wpcr3_review_name}}</a>
 			{{/wpcr3_review_website}}
 			{{!wpcr3_review_website}}
 			{{wpcr3_review_name}}
 			{{/wpcr3_review_website}}
-		</span>{{!on_same_page}}&nbsp;on&nbsp;<span class="wpcr3_item_name"><a href="{{postLink}}">{{item_name}}</a></span>{{/on_same_page}}
+		</span>{{!on_same_page}}&nbsp;on&nbsp;<span class="wpcr3_item_name"><a
+				href="{{postLink}}">{{item_name}}</a></span>{{/on_same_page}}
 	</div>
 	<div class="wpcr3_clear"></div>
 	{{:wpcr3_review_title}}

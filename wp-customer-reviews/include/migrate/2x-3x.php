@@ -1,4 +1,10 @@
 <?php
+
+if (!defined('ABSPATH')) {
+	exit;
+}
+
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Migration entry point; wpcr3_ prefix.
 function wpcr3_migrate_2x_3x(&$this2, $current_dbversion) {
 	global $wpdb;
 	
@@ -120,6 +126,7 @@ function wpcr3_migrate_2x_3x(&$this2, $current_dbversion) {
 	
 	// begin: find posts which have 2x reviews associated with their post ID
 	// $reviews_2x will be re-used further down
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time 2x migration; legacy table has no core API.
 	$reviews_2x = $wpdb->get_results("SELECT * FROM {$wpdb->prefix}wpcreviews ORDER BY page_id ASC, id ASC");
 	$assigned_page_ids = array();
 	foreach ($reviews_2x as $review) {
@@ -190,7 +197,7 @@ function wpcr3_migrate_2x_3x(&$this2, $current_dbversion) {
 		else if ($review->status == '2') { $status = 'trash'; }
 		
 		$name = (strlen($review->reviewer_name) === 0) ? 'Anonymous' : $review->reviewer_name;
-		$datetime = date('m/d/Y h:i', strtotime($review->date_time));
+		$datetime = wp_date('m/d/Y h:i', strtotime($review->date_time));
 		$title = "{$name} @ {$datetime}";
 		
 		$newpost = array(

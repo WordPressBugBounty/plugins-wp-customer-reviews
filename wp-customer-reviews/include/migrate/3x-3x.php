@@ -1,4 +1,10 @@
 <?php
+
+if (!defined('ABSPATH')) {
+	exit;
+}
+
+// phpcs:ignore WordPress.NamingConventions.PrefixAllGlobals.NonPrefixedFunctionFound -- Migration entry point; wpcr3_ prefix.
 function wpcr3_migrate_3x_3x(&$this2, $current_dbversion) {
 	// if anything fails, RETURN FALSE
 	
