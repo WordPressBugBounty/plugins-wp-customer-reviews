@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/donate/?hosted_button_id=WWRLGGP9CE4LE
 Tags: hcard, schema.org, hreview, reviews, testimonials
 Requires at least: 5.3
 Tested up to: 7.0
-Stable tag: 3.8.0
+Stable tag: 3.8.1
 Requires PHP: 7.4
 License: MIT
 License URI: http://opensource.org/licenses/MIT
@@ -62,6 +62,10 @@ More information at: [**WP Customer Reviews**](https://wordpress.org/plugins/wp-
 * [**Community Support Forum**](https://wordpress.org/support/plugin/wp-customer-reviews/)
 
 == Changelog ==
+
+= 3.8.1 =
+* 06/17/2026
+* [Bugfix] Fixed "failed the spambot check. Code 8" when paginating reviews on the front-end
 
 = 3.8.0 =
 * 06/13/2026

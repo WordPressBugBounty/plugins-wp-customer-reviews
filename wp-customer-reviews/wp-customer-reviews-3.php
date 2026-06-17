@@ -3,7 +3,7 @@
  * Plugin Name: WP Customer Reviews
  * Plugin URI: https://wordpress.org/plugins/wp-customer-reviews/
  * Description: Allows your visitors to leave business / product reviews. Testimonials are in Microdata / Microformat and may display star ratings in search results.
- * Version: 3.8.0
+ * Version: 3.8.1
  * Requires PHP: 7.4
  * Author: Aaron Queen
  * Author URI: https://wordpress.org/plugins/wp-customer-reviews/
@@ -252,7 +252,7 @@ class WPCustomerReviews3
       // $_GET is used mainly by filters for admin pages, but no intended use case for this in frontend
       // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin GET for list filters/settings UI.
       foreach ($_GET as $c => $val) {
-        $this->p->$c = $val;
+        $this->p->$c = wp_unslash($val);
       }
     }
 
@@ -260,7 +260,7 @@ class WPCustomerReviews3
     if (is_admin() || wp_doing_ajax()) {
       // phpcs:ignore WordPress.Security.NonceVerification.Missing -- POST ingested only in admin/AJAX; AJAX verified via check_ajax_referer.
       foreach ($_POST as $c => $val) {
-        $this->p->$c = $val;
+        $this->p->$c = wp_unslash($val);
       }
     }
 
